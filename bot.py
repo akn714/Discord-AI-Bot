@@ -44,22 +44,26 @@ async def on_ready():
 
 @bot.event
 async def on_message(message):
+  if message.author == bot.user:
+    return
+
   # for conversations
   key = ""
   query = message.content
 
+  if message.content == "?reset_history":
+    history[key] = []
+    await message.channel.send('Conversation history reset done')
+    return
+
   # direct messages
-  if str(
-      message.channel
-  ) == 'Direct Message with Unknown User' and message.author != bot.user:
+  if str(message.channel) == 'Direct Message with Unknown User':
     print('[+] DM', f'from {message.author}')
     key = message.channel.id
-
-    await message.author.send('generating response...')
+    # await message.channel.send('generating response...')
     chats = chat_history(key)
     response, chats = get_response(query, chats)
     history[key] = chats
-    await message.author.send(response)
 
   # channel messages
   else:
@@ -68,12 +72,13 @@ async def on_message(message):
       await message.channel.send(f'Hello {message.author}', reference=message)
     if message.author != bot.user and str(
         message.type) != 'MessageType.new_member':
-
-      await message.author.send('generating response...')
+      # await message.channel.send('generating response...')
       chats = chat_history(key)
       response, chats = get_response(query, chats)
       history[key] = chats
-      await message.author.send(response)
+
+  # final response
+  await message.channel.send(response[0].page_content, reference=message)
 
 
 def run_bot():
