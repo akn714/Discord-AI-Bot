@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 # author: Adarsh Kumar (https://github.com/adarshkumar714)
-
 """
 ### discord bot url ###
 https://discord.com/api/oauth2/authorize?client_id=1128957735157899274&permissions=326417737728&scope=bot
@@ -26,6 +25,8 @@ key -> unique chat id
 value -> chat history for that chat
 """
 history = dict()
+
+
 def chat_history(user_id):
     global history
     try:
@@ -37,7 +38,7 @@ def chat_history(user_id):
 
 @client.event
 async def on_ready():
-  print('we have logged in as %s' % client.user)
+    print('we have logged in as %s' % client.user)
 
 
 @client.event
@@ -47,13 +48,15 @@ async def on_message(message):
     print(message)
 
     await message.channel.send('generating...')
-    response, chat_history(user_id) = get_response(query, chat_history(user_id))
-    await message.channel.send(content, reference=message)
+    new_chat_history = chat_history(user_id)
+    response, new_chat_history = get_response(query,
+                                                   chat_history(user_id))
+    await message.channel.send(response, reference=message)
 
 
 def run_bot():
-  client.run(os.getenv('TOKEN'))
+    client.run(os.getenv('DISCORD_BOT_TOKEN'))
 
 
 if __name__ == "__main__":
-  run_bot()
+    run_bot()
