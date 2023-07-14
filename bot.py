@@ -48,8 +48,7 @@ async def on_message(message):
     print(message)
 
     await message.channel.send('generating...')
-    new_chat_history = chat_history(user_id)
-    response, new_chat_history = get_response(query,
+    response, history[user_id] = get_response(query,
                                                    chat_history(user_id))
     await message.channel.send(response, reference=message)
 
