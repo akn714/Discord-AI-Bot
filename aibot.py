@@ -2,8 +2,6 @@
 # -*- coding: utf-8 -*-
 # author: Adarsh Kumar (https://github.com/adarshkumar714)
 
-# utilites / helper functions
-
 from langchain.document_loaders import WebBaseLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.embeddings.openai import OpenAIEmbeddings
