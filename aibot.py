@@ -17,6 +17,9 @@ from langchain.memory import ConversationBufferMemory
 import os
 from dotenv import load_dotenv
 
+os.environ['OPENAI_API_KEY'] = os.getenv(
+  "OPENAI_API_KEY")  # repl.it asks for this useless line
+
 load_dotenv()
 
 documents = []
@@ -35,14 +38,13 @@ text_splitter = RecursiveCharacterTextSplitter(chunk_size=512,
 documents = text_splitter.split_documents(documents)
 
 # embeddings
-embeddings = OpenAIEmbeddings(model='gpt-3.5-turbo',
-                              openai_api_key=os.getenv('OPENAI_API_KEY'))
+embeddings = OpenAIEmbeddings()
 
 # initializing pinecone db
 print('[+] Initializing pinecone db...')
 pinecone.init(
-    api_key=os.getenv('PINECONE_API_KEY'),
-    environment=os.getenv('PINECONE_ENV'),
+  api_key=os.getenv('PINECONE_API_KEY'),
+  environment=os.getenv('PINECONE_ENV'),
 )
 
 index_name = os.getenv('PINECONE_INDEX_NAME')
@@ -79,7 +81,7 @@ llm = ChatOpenAI(openai_api_key=os.getenv('OPENAI_API_KEY'),
 
 # memory = ConversationBufferMemory(memory_key="chat_history", return_messages=True)
 qa = ConversationalRetrievalChain.from_llm(
-    llm=llm, retriever=vectorstore.as_retriever())
+  llm=llm, retriever=vectorstore.as_retriever())
 
 
 # returns result of the query and the updated chat_history
@@ -90,10 +92,9 @@ def get_response(query, chat_history=[]):
   return result, chat_history
 
 
-
 if __name__ == "__main__":
-    print("START THE CHAT:\n")
-    while True:
-        query = input("[You]: ")
-        response, chat_history = get_response(query, [])
-        print(response)
+  print("START THE CHAT:\n")
+  while True:
+    query = input("[You]: ")
+    response, chat_history = get_response(query, [])
+    print(response)
