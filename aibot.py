@@ -85,8 +85,17 @@ qa = ConversationalRetrievalChain.from_llm(
 
 
 # returns result of the query and the updated chat_history
-def get_response(query, chat_history):
+def get_response(query, chat_history=[]):
   result = qa({"question": query, "chat_history": chat_history})["answer"]
   chat_history.append((query, result))
 
   return result, chat_history
+
+
+
+if __name__ == "__main__":
+    print("START THE CHAT:\n")
+    while True:
+        query = input("[You]: ")
+        response, chat_history = get_response(query, [])
+        print(response)
