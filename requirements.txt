@@ -1,9 +1,7 @@
+discord
 langchain
-faiss-cpu
-openai
-sentence-transformers
-openai
 pinecone
 requests
+openai
 dotenv
 

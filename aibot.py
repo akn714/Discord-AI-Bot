@@ -15,15 +15,14 @@ from langchain.llms import OpenAI
 from langchain.chains import ConversationalRetrievalChain
 from langchain.memory import ConversationBufferMemory
 
-
 # environment variables
-import os  
+import os
 from dotenv import load_dotenv
+
 load_dotenv()
 
 documents = []
 url = "https://www.ideou.com/blogs/inspiration/what-is-design-thinking"
-
 
 # loading documents
 print(f"[+] loading data from URL:{url}")
@@ -32,15 +31,14 @@ doc = loader.load()
 documents.extend(doc)
 print("[+] URL loaded")
 
-
 # splitting into chunks
-text_splitter = RecursiveCharacterTextSplitter(chunk_size=512, chunk_overlap=10)
+text_splitter = RecursiveCharacterTextSplitter(chunk_size=512,
+                                               chunk_overlap=10)
 documents = text_splitter.split_documents(documents)
 
-
 # embeddings
-embeddings = OpenAIEmbeddings(model='gpt-3.5-turbo', openai_api_key=os.getenv('OPENAI_API_KEY'))
-
+embeddings = OpenAIEmbeddings(model='gpt-3.5-turbo',
+                              openai_api_key=os.getenv('OPENAI_API_KEY'))
 
 # initializing pinecone db
 print('[+] Initializing pinecone db...')
@@ -55,7 +53,9 @@ index.describe_index_stats()
 
 print("[+] Index Stats: ")
 print(index.describe_index_stats())
-docsearch = Pinecone.from_documents(documents, embedding=embeddings, index_name=index_name)
+docsearch = Pinecone.from_documents(documents,
+                                    embedding=embeddings,
+                                    index_name=index_name)
 
 print('[+] Creating vector store')
 text_field = "text"
@@ -65,7 +65,6 @@ index = pinecone.Index(index_name)
 
 # embed will be created by client
 vectorstore = Pinecone(index, embeddings.embed_query, text_field)
-
 
 # Chat
 
@@ -82,16 +81,12 @@ llm = ChatOpenAI(openai_api_key=os.getenv('OPENAI_API_KEY'),
 
 # memory = ConversationBufferMemory(memory_key="chat_history", return_messages=True)
 qa = ConversationalRetrievalChain.from_llm(
-    llm = llm,
-    retriever = vectorstore.as_retriever()
-)
+    llm=llm, retriever=vectorstore.as_retriever())
 
 
 # returns result of the query and the updated chat_history
 def get_response(query, chat_history):
-    result = qa({"question": query, "chat_history": chat_history})["answer"]
-    chat_history.append((question, result["answer"]))
+  result = qa({"question": query, "chat_history": chat_history})["answer"]
+  chat_history.append((query, result))
 
-    return result, chat_history
-
-
+  return result, chat_history
