@@ -30,18 +30,21 @@ history = dict()
 @client.event
 async def on_ready():
   print('we have logged in as %s' % client.user)
-  # ...
 
 
 @client.event
 async def on_message(message):
-  print(message)
-  # ...
+    user_id = message.author
+    query = message.content
+    print(message)
+
+    await message.channel.send('generating...')
+    response, chat_history(user_id) = get_response(query, chat_history(user_id))
+    await message.channel.send(content, reference=message)
 
 
 def run_bot():
-  client.run(
-      'a446c58ebb655611de56b2a2162b83e3e1cfd4f09efc27c5b2ae83f8e7331514')
+  client.run(os.getenv('TOKEN'))
 
 
 if __name__ == "__main__":
