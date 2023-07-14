@@ -12,30 +12,36 @@ from langchain.chat_models import ChatOpenAI
 from langchain.llms import OpenAI
 from langchain.chains import ConversationalRetrievalChain
 from langchain.memory import ConversationBufferMemory
+from langchain.prompts import PromptTemplate
 
 # environment variables
 import os
 from dotenv import load_dotenv
 
-os.environ['OPENAI_API_KEY'] = os.getenv(
-  "OPENAI_API_KEY")  # repl.it asks for this useless line
-
 load_dotenv()
 
+os.environ['OPENAI_API_KEY'] = os.getenv(
+  "OPENAI_API_KEY")  # repl.it asks for this useless line
+os.environ['PINECONE_API_KEY'] = os.getenv(
+  "PINECONE_API_KEY")  # repl.it asks for this useless line
+os.environ['PINECONE_ENV'] = os.getenv(
+  "PINECONE_ENV")  # repl.it asks for this useless line
+os.environ['PINECONE_INDEX_NAME'] = os.getenv(
+  "PINECONE_INDEX_NAME")  # repl.it asks for this useless line
+
 documents = []
-url = "https://www.ideou.com/blogs/inspiration/what-is-design-thinking"
+# url = "https://www.ideou.com/blogs/inspiration/what-is-design-thinking"
 
 # loading documents
-print(f"[+] loading data from URL:{url}")
-loader = WebBaseLoader(url)
-doc = loader.load()
-documents.extend(doc)
-print("[+] URL loaded")
+# print(f"[+] loading data from URL:{url}")
+# loader = WebBaseLoader(url)
+# doc = loader.load()
+# documents.extend(doc)
+# print("[+] URL loaded")
 
 # splitting into chunks
-text_splitter = RecursiveCharacterTextSplitter(chunk_size=512,
-                                               chunk_overlap=10)
-documents = text_splitter.split_documents(documents)
+# text_splitter = RecursiveCharacterTextSplitter(chunk_size=512, chunk_overlap=10)
+# documents = text_splitter.split_documents(documents)
 
 # embeddings
 embeddings = OpenAIEmbeddings()
@@ -53,9 +59,9 @@ index.describe_index_stats()
 
 print("[+] Index Stats: ")
 print(index.describe_index_stats())
-docsearch = Pinecone.from_documents(documents,
-                                    embedding=embeddings,
-                                    index_name=index_name)
+# docsearch = Pinecone.from_documents(documents,
+#                                     embedding=embeddings,
+#                                     index_name=index_name)
 
 print('[+] Creating vector store')
 text_field = "text"
@@ -66,30 +72,33 @@ index = pinecone.Index(index_name)
 # embed will be created by client
 vectorstore = Pinecone(index, embeddings.embed_query, text_field)
 
-# Chat
+# docsearch
+docsearch = Pinecone.from_existing_index(index_name, embeddings)
+
+# prompt template
+prompt_template = """reply me as an AI bot:
+                     {text}
+                  """
+prompt = PromptTemplate(template=prompt_template, input_variables=["text"])
 
 # completion llm
 llm = ChatOpenAI(openai_api_key=os.getenv('OPENAI_API_KEY'),
-                 model_name='gpt-3.5-turbo',
-                 temperature=0.0)
-
-# qa = RetrievalQA.from_chain_type(
-#     llm=llm,
-#     chain_type="stuff",
-#     retriever=vectorstore.as_retriever()
-# )
-
-# memory = ConversationBufferMemory(memory_key="chat_history", return_messages=True)
-qa = ConversationalRetrievalChain.from_llm(
-  llm=llm, retriever=vectorstore.as_retriever())
+                model_name='gpt-3.5-turbo',
+                temperature=0.0)
+chain = RetrievalQA.from_chain_type(llm=llm,
+                                    chain_type="stuff",
+                                    # prompt=prompt,
+                                    retriever=vectorstore.as_retriever())
 
 
-# returns result of the query and the updated chat_history
+
 def get_response(query, chat_history=[]):
-  result = qa({"question": query, "chat_history": chat_history})["answer"]
-  chat_history.append((query, result))
+    # result = chain({"query": query, "chat_history": chat_history})
+    # result = chain.get_relevant_documents(query)                            # new line
+    result = docsearch.similarity_search(query)                               # new line
+    chat_history.append((query, result))
 
-  return result, chat_history
+    return result, chat_history
 
 
 if __name__ == "__main__":
@@ -97,4 +106,5 @@ if __name__ == "__main__":
   while True:
     query = input("[You]: ")
     response, chat_history = get_response(query, [])
-    print(response)
+    # print(response["answer"])
+    print(response[0].page_content)
