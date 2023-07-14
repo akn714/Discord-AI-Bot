@@ -1,0 +1,9 @@
+langchain
+faiss-cpu
+openai
+sentence-transformers
+openai
+pinecone
+requests
+dotenv
+
