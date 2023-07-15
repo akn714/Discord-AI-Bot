@@ -9,9 +9,9 @@ history = dict()
 
 # chat history
 def chat_history(key):
-  global history
-  try:
-    return history[key]
-  except:
-    history[key] = ConversationBufferMemory()
-    return history[key]
+    global history
+    try:
+        return history[key]
+    except:
+        history[key] = ConversationBufferMemory()
+        return history[key]
