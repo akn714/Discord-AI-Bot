@@ -2,25 +2,25 @@
 # -*- coding: utf-8 -*-
 # author: Adarsh Kumar (https://github.com/adarshkumar714)
 
-from langchain.document_loaders import WebBaseLoader
-from langchain.text_splitter import RecursiveCharacterTextSplitter
+# from langchain.document_loaders import WebBaseLoader
+# from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.embeddings.openai import OpenAIEmbeddings
 import pinecone
 from langchain.vectorstores import Pinecone
-from langchain.chains import RetrievalQA
+# from langchain.chains import RetrievalQA
 from langchain.chat_models import ChatOpenAI
-from langchain.llms import OpenAI
-from langchain.chains import ConversationalRetrievalChain
+# from langchain.llms import OpenAI
+# from langchain.chains import ConversationalRetrievalChain
 from langchain.memory import ConversationBufferMemory
 
-from langchain.chains import ChatVectorDBChain
+# from langchain.chains import ChatVectorDBChain
 
-from langchain.chains import LLMChain
+# from langchain.chains import LLMChain
 
-from langchain.chains.question_answering import load_qa_chain
+# from langchain.chains.question_answering import load_qa_chain
 from langchain.chains import ConversationChain
 from langchain import PromptTemplate
-from langchain.memory import ConversationBufferMemory
+# from langchain.memory import ConversationBufferMemory
 
 GENIEPROMPT = "You are an Ecommerce expert/mentor. Your users are beginners in this field. You provide accurate and descriptive answers to user questions in under 2000 characters, after researching through the vector DB. Provide additional descriptions of any complex terms being used in the response \n\nUser: {question}\n\nAi: "
 
@@ -31,13 +31,13 @@ from dotenv import load_dotenv
 load_dotenv()
 
 os.environ['OPENAI_API_KEY'] = os.getenv(
-  "OPENAI_API_KEY")  # repl.it asks for this useless line
+    "OPENAI_API_KEY")  # repl.it asks for this useless line
 os.environ['PINECONE_API_KEY'] = os.getenv(
-  "PINECONE_API_KEY")  # repl.it asks for this useless line
+    "PINECONE_API_KEY")  # repl.it asks for this useless line
 os.environ['PINECONE_ENV'] = os.getenv(
-  "PINECONE_ENV")  # repl.it asks for this useless line
+    "PINECONE_ENV")  # repl.it asks for this useless line
 os.environ['PINECONE_INDEX_NAME'] = os.getenv(
-  "PINECONE_INDEX_NAME")  # repl.it asks for this useless line
+    "PINECONE_INDEX_NAME")  # repl.it asks for this useless line
 
 # # NOTE: commented this code, as we want to use existing pinecone index
 # loading documents
@@ -63,12 +63,12 @@ history = dict()
 
 # chat history
 def chat_history(key):
-  global history
-  try:
-    return history[key]
-  except:
-    history[key] = ConversationBufferMemory()
-    return history[key]
+    global history
+    try:
+        return history[key]
+    except:
+        history[key] = ConversationBufferMemory()
+        return history[key]
 
 
 # embeddings
@@ -77,8 +77,8 @@ embeddings = OpenAIEmbeddings()
 # initializing pinecone db
 print('[+] Initializing pinecone db...')
 pinecone.init(
-  api_key=os.getenv('PINECONE_API_KEY'),
-  environment=os.getenv('PINECONE_ENV'),
+    api_key=os.getenv('PINECONE_API_KEY'),
+    environment=os.getenv('PINECONE_ENV'),
 )
 
 index_name = os.getenv('PINECONE_INDEX_NAME')
@@ -124,7 +124,11 @@ llm = ChatOpenAI(openai_api_key=os.getenv('OPENAI_API_KEY'),
 # chain = ConversationalRetrievalChain.from_llm(
 #   llm=llm, chain_type="map_reduce", retriever=vectorstore.as_retriever())
 
+prompt_template = PromptTemplate(input_variables=['question'],
+                                 template=GENIEPROMPT)
+
 chain = ConversationChain(llm=llm,
+                          prompt=prompt_template,
                           verbose=False,
                           memory=ConversationBufferMemory())
 
@@ -132,25 +136,28 @@ chain = ConversationChain(llm=llm,
 
 
 def get_response(query, chat_history):
-  # result = chain({"query": query, "chat_history": chat_history})
-  # result = chain.get_relevant_documents(query)                     # new line
-  docs = docsearch.similarity_search(query)  # new line
-  # result = chain({"question": query, "chat_history": chat_history})
+    # result = chain({"query": query, "chat_history": chat_history})
+    # result = chain.get_relevant_documents(query)                     # new line
+    print('[+] fetching docs from pinecone_db...')
+    docs = docsearch.similarity_search(query)  # new line
+    # result = chain({"question": query, "chat_history": chat_history})
+    print(type(docs))
+    print(f'[+] {len(docs)} docs fetched.')
 
-  result = chain.run({
-    "input": query,
-  })
+    # docs_dict = {docs[i]: docs[i + 1] for i in range(0, len(docs), 2)}
 
-  chat_history.save_context({"input": query}, {"output": result})
-  return result, chat_history
+    result = chain.run({"input": query})
+
+    chat_history.save_context({"input": query}, {"output": result})
+    return result, chat_history
 
 
 if __name__ == "__main__":
-  print("START THE CHAT:\n")
-  chat_hist = ConversationBufferMemory()
-  while True:
-    query = input("[You]: ")
-    response, chat_hist = get_response(query, chat_hist)
-    # print(response["answer"])
-    # print(response['output_text'])
-    print(response)
+    print("START THE CHAT:\n")
+    chat_hist = ConversationBufferMemory()
+    while True:
+        query = input("[You]: ")
+        response, chat_hist = get_response(query, chat_hist)
+        # print(response["answer"])
+        # print(response['output_text'])
+        print(response)
