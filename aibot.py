@@ -10,6 +10,7 @@ from langchain.vectorstores import Pinecone
 from langchain.chat_models import ChatOpenAI
 from langchain.memory import ConversationBufferMemory
 from langchain.chains import ConversationChain
+from langchain.chains.question_answering import load_qa_chain
 from langchain import PromptTemplate
 
 # environment variables
@@ -30,8 +31,8 @@ embeddings = OpenAIEmbeddings()
 # initializing pinecone db
 print('[+] Initializing pinecone db...')
 pinecone.init(
-    api_key=os.getenv('PINECONE_API_KEY'),
-    environment=os.getenv('PINECONE_ENV'),
+  api_key=os.getenv('PINECONE_API_KEY'),
+  environment=os.getenv('PINECONE_ENV'),
 )
 
 index_name = os.getenv('PINECONE_INDEX_NAME')
@@ -58,9 +59,38 @@ llm = ChatOpenAI(openai_api_key=os.getenv('OPENAI_API_KEY'),
 GENIEPROMPT = "You are an Ecommerce expert/mentor. Your users are beginners in this field. You provide accurate and descriptive answers to user questions in under 2000 characters, after researching through the vector DB. Provide additional descriptions of any complex terms being used in the response \n\nUser: {question}\n\nAi: "
 
 # prompt template
-prompt_template = PromptTemplate(template=GENIEPROMPT,
-                                 input_variables=["question"])
+# prompt_template = PromptTemplate(input_variables=["question"],
+# template=GENIEPROMPT)
+#
+#
+#
+#
+#
+#
+#
+#
+#
+from langchain.prompts import (SystemMessagePromptTemplate,
+                               HumanMessagePromptTemplate, ChatPromptTemplate,
+                               MessagesPlaceholder)
 
+system_msg_template = SystemMessagePromptTemplate.from_template(
+  template=GENIEPROMPT)
+human_msg_template = HumanMessagePromptTemplate.from_template(template="")
+
+prompt_template = ChatPromptTemplate.from_messages([
+  system_msg_template,
+  MessagesPlaceholder(variable_name="question"), human_msg_template
+])
+#
+#
+#
+#
+#
+#
+#
+#
+#
 # chain
 chain = ConversationChain(llm=llm,
                           prompt=prompt_template,
@@ -69,20 +99,20 @@ chain = ConversationChain(llm=llm,
 
 
 def get_response(query, chat_hist):
-    # fetching docs from pinecone db
-    print('[+] fetching docs from pinecone_db...')
-    docs = docsearch.similarity_search(query)
-    print(f'[+] {len(docs)} docs fetched.')
-    result = chain.run({"input": query})
+  # fetching docs from pinecone db
+  print('[+] fetching docs from pinecone_db...')
+  docs = docsearch.similarity_search(query)
+  print(f'[+] {len(docs)} docs fetched.')
+  result = chain.run({"input": query})
 
-    chat_hist.save_context({"input": query}, {"output": result})
-    return result, chat_hist
+  chat_hist.save_context({"input": query}, {"output": result})
+  return result, chat_hist
 
 
 if __name__ == "__main__":
-    print("START THE CHAT:\n")
-    chat_hist = ConversationBufferMemory()
-    while True:
-        query = input("[You]: ")
-        response, chat_hist = get_response(query, chat_hist)
-        print(response)
+  print("START THE CHAT:\n")
+  chat_hist = ConversationBufferMemory()
+  while True:
+    query = input("[You]: ")
+    response, chat_hist = get_response(query, chat_hist)
+    print(response)
