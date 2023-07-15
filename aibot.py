@@ -13,6 +13,13 @@ from langchain.llms import OpenAI
 from langchain.chains import ConversationalRetrievalChain
 from langchain.memory import ConversationBufferMemory
 from langchain.prompts import PromptTemplate
+from langchain.chains.question_answering import load_qa_chain
+
+from langchain import PromptTemplate
+
+GENIEPROMPT = "You are an Ecommerce expert/mentor. Your users are beginners in this field. You provide accurate and descriptive answers to user questions, after researching through the vector DB. Provide additional descriptions of any complex terms being used in the response \n\nUser: {question}\n\nAi: "
+
+prompt_template = PromptTemplate.from_template(GENIEPROMPT)
 
 # environment variables
 import os
@@ -21,13 +28,13 @@ from dotenv import load_dotenv
 load_dotenv()
 
 os.environ['OPENAI_API_KEY'] = os.getenv(
-  "OPENAI_API_KEY")  # repl.it asks for this useless line
+    "OPENAI_API_KEY")  # repl.it asks for this useless line
 os.environ['PINECONE_API_KEY'] = os.getenv(
-  "PINECONE_API_KEY")  # repl.it asks for this useless line
+    "PINECONE_API_KEY")  # repl.it asks for this useless line
 os.environ['PINECONE_ENV'] = os.getenv(
-  "PINECONE_ENV")  # repl.it asks for this useless line
+    "PINECONE_ENV")  # repl.it asks for this useless line
 os.environ['PINECONE_INDEX_NAME'] = os.getenv(
-  "PINECONE_INDEX_NAME")  # repl.it asks for this useless line
+    "PINECONE_INDEX_NAME")  # repl.it asks for this useless line
 
 documents = []
 # url = "https://www.ideou.com/blogs/inspiration/what-is-design-thinking"
@@ -49,8 +56,8 @@ embeddings = OpenAIEmbeddings()
 # initializing pinecone db
 print('[+] Initializing pinecone db...')
 pinecone.init(
-  api_key=os.getenv('PINECONE_API_KEY'),
-  environment=os.getenv('PINECONE_ENV'),
+    api_key=os.getenv('PINECONE_API_KEY'),
+    environment=os.getenv('PINECONE_ENV'),
 )
 
 index_name = os.getenv('PINECONE_INDEX_NAME')
@@ -64,6 +71,7 @@ print(index.describe_index_stats())
 #                                     index_name=index_name)
 
 print('[+] Creating vector store')
+
 text_field = "text"
 
 # switch back to normal index for langchain
@@ -76,35 +84,43 @@ vectorstore = Pinecone(index, embeddings.embed_query, text_field)
 docsearch = Pinecone.from_existing_index(index_name, embeddings)
 
 # prompt template
-prompt_template = """reply me as an AI bot:
-                     {text}
-                  """
-prompt = PromptTemplate(template=prompt_template, input_variables=["text"])
+# prompt_template = """reply me as an AI bot:
+# {text}
+# """
+# prompt = PromptTemplate(template=prompt_template, input_variables=["text"])
 
 # completion llm
 llm = ChatOpenAI(openai_api_key=os.getenv('OPENAI_API_KEY'),
-                model_name='gpt-3.5-turbo',
-                temperature=0.0)
-chain = RetrievalQA.from_chain_type(llm=llm,
-                                    chain_type="stuff",
-                                    # prompt=prompt,
-                                    retriever=vectorstore.as_retriever())
+                 model_name='gpt-3.5-turbo',
+                 temperature=0.3)
 
+# chain = RetrievalQA.from_chain_type(
+#     llm=llm,
+#     chain_type="stuff",
+#     # prompt=prompt,
+#     retriever=vectorstore.as_retriever())
+chain = load_qa_chain(llm, chain_type="map_reduce", verbose=True)
 
 
 def get_response(query, chat_history=[]):
     # result = chain({"query": query, "chat_history": chat_history})
-    # result = chain.get_relevant_documents(query)                            # new line
-    result = docsearch.similarity_search(query)                               # new line
+    # result = chain.get_relevant_documents(query)                     # new line
+    docs = docsearch.similarity_search(query)  # new line
+    result = chain(
+        {
+            "input_documents": docs,
+            "question": prompt_template.format(question=query)
+        },
+        return_only_outputs=True)
     chat_history.append((query, result))
-
+    print(result)
     return result, chat_history
 
 
 if __name__ == "__main__":
-  print("START THE CHAT:\n")
-  while True:
-    query = input("[You]: ")
-    response, chat_history = get_response(query, [])
-    # print(response["answer"])
-    print(response[0].page_content)
+    print("START THE CHAT:\n")
+    while True:
+        query = input("[You]: ")
+        response, chat_history = get_response(query, [])
+        # print(response["answer"])
+        print(response['output_text'])
